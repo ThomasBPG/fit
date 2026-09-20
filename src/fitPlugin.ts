@@ -1,4 +1,4 @@
-import { Notice, Plugin, SettingTab } from 'obsidian';
+import { Notice, Plugin, SettingTab, TFile } from 'obsidian';
 import { FitStatusModal } from '@/fitStatusModal';
 import { renderExplanation, type AutoSyncInfo } from '@/fitStatusExplainer';
 import { Fit } from '@/fit';
@@ -45,6 +45,8 @@ type SyncOutcome =
  * @see FitSync - The sync orchestrator (contains business logic)
  * @see Fit - Data access layer for local/remote storage
  */
+const SAVE_SYNC_DEBOUNCE_MS = 3000;
+
 export default class FitPlugin extends Plugin {
 	settings: FitSettings;
 	settingTab: FitSettingTab;
@@ -62,6 +64,7 @@ export default class FitPlugin extends Plugin {
 	private lastGithubConnectionHost: string | null = null; // Track host changes (cached auth user is per-host)
 	private activeManualSyncRequests = 0; // Track number of active manual sync attempts
 	private currentSyncNotice: FitNotice | null = null; // The active sync notice (shared by concurrent requests)
+	private saveSyncDebounceTimer: number | null = null; // Pending debounced sync after a file save
 
 	// if settings not configured, open settings to let user quickly setup
 	// Note: this is not a stable feature and might be disabled at any point in the future
@@ -450,6 +453,26 @@ export default class FitPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * Entry point: a vault file was written to disk (Ctrl+S, vim :w, editor
+	 * autosave on blur, or a mobile save). Debounced so a burst of saves
+	 * coalesces into one full auto sync. The isActive guard is load-bearing:
+	 * FIT's own pull writes fire 'modify' too (LocalVault.applyChanges uses
+	 * vault.modify/create), so without it every sync would re-arm a redundant
+	 * no-op sync a few seconds later.
+	 */
+	onVaultFileSaved = (_file: TFile): void => {
+		if (!this.settings?.syncOnSave || this.fitSync?.isActive) return;
+
+		if (this.saveSyncDebounceTimer !== null) {
+			window.clearTimeout(this.saveSyncDebounceTimer);
+		}
+		this.saveSyncDebounceTimer = window.setTimeout(() => {
+			this.saveSyncDebounceTimer = null;
+			void this.executeSyncWithUICoordination('auto');
+		}, SAVE_SYNC_DEBOUNCE_MS);
+	};
+
 	async startOrUpdateAutoSyncInterval() {
 		// Clear existing interval if it exists
 		if (this.autoSyncIntervalId !== null) {
@@ -518,6 +541,10 @@ export default class FitPlugin extends Plugin {
 	}
 
 	onunload() {
+		if (this.saveSyncDebounceTimer !== null) {
+			window.clearTimeout(this.saveSyncDebounceTimer);
+			this.saveSyncDebounceTimer = null;
+		}
 		if (this.autoSyncIntervalId !== null) {
 			window.clearInterval(this.autoSyncIntervalId);
 			this.autoSyncIntervalId = null;
