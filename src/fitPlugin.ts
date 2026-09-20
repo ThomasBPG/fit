@@ -45,7 +45,7 @@ type SyncOutcome =
  * @see FitSync - The sync orchestrator (contains business logic)
  * @see Fit - Data access layer for local/remote storage
  */
-const SAVE_SYNC_DEBOUNCE_MS = 3000;
+const SAVE_SYNC_DEBOUNCE_MS = 30000;
 
 export default class FitPlugin extends Plugin {
 	settings: FitSettings;
