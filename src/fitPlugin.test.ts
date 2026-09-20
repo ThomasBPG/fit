@@ -209,6 +209,22 @@ describe('FitPlugin persistence lifecycle', () => {
 			await plugin.loadSettings();
 			expect(plugin.settings.githubHost).toBe('github.example.com');
 		});
+
+		it('defaults syncOnSave and syncOnOpen to false', async () => {
+			const plugin = makePlugin();
+			mockLoad(plugin, {});
+			await plugin.loadSettings();
+			expect(plugin.settings.syncOnSave).toBe(false);
+			expect(plugin.settings.syncOnOpen).toBe(false);
+		});
+
+		it('keeps stored syncOnSave/syncOnOpen values', async () => {
+			const plugin = makePlugin();
+			mockLoad(plugin, { syncOnSave: true, syncOnOpen: true });
+			await plugin.loadSettings();
+			expect(plugin.settings.syncOnSave).toBe(true);
+			expect(plugin.settings.syncOnOpen).toBe(true);
+		});
 	});
 });
 
