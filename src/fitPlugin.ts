@@ -490,6 +490,10 @@ export default class FitPlugin extends Plugin {
 		}
 		this.saveSyncDebounceTimer = window.setTimeout(() => {
 			this.saveSyncDebounceTimer = null;
+			// Re-check at fire time: settings can be toggled off (or a sync
+			// started) during the debounce window; the entry-time guard above
+			// only covered the moment the save landed.
+			if (!this.settings?.syncOnSave || this.fitSync?.isActive) return;
 			void this.executeSyncWithUICoordination('auto');
 		}, SAVE_SYNC_DEBOUNCE_MS);
 	};

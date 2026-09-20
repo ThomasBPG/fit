@@ -506,6 +506,28 @@ describe('FitPlugin sync-on-save trigger', () => {
 		expect(stub.sync).not.toHaveBeenCalled();
 	});
 
+	it('is a no-op when syncOnSave is disabled during the debounce window', async () => {
+		const plugin = makeSaveTriggerPlugin({ syncOnSave: true });
+		const stub = plugin.fitSync as unknown as StubFitSync;
+
+		(plugin as any).onVaultFileSaved(fakeFile);
+		plugin.settings.syncOnSave = false;
+		await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+
+		expect(stub.sync).not.toHaveBeenCalled();
+	});
+
+	it('is a no-op when a sync starts during the debounce window', async () => {
+		const plugin = makeSaveTriggerPlugin({ syncOnSave: true });
+		const stub = plugin.fitSync as unknown as StubFitSync;
+
+		(plugin as any).onVaultFileSaved(fakeFile);
+		stub.isActive = true;
+		await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+
+		expect(stub.sync).not.toHaveBeenCalled();
+	});
+
 	it('coalesces rapid successive saves into a single sync', async () => {
 		const plugin = makeSaveTriggerPlugin({ syncOnSave: true });
 		const stub = plugin.fitSync as unknown as StubFitSync;
