@@ -528,4 +528,67 @@ describe('FitPlugin sync-on-save trigger', () => {
 
 		expect(stub.sync).not.toHaveBeenCalled();
 	});
+
+	it('registerVaultEvents subscribes the save handler to vault modify events', () => {
+		const plugin = makeSaveTriggerPlugin({ syncOnSave: true });
+		plugin.app.vault = { on: vi.fn().mockReturnValue({}) } as any;
+
+		(plugin as any).registerVaultEvents();
+
+		expect(plugin.app.vault.on).toHaveBeenCalledWith('modify', expect.any(Function));
+		expect(plugin.registerEvent).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('FitPlugin sync-on-open trigger', () => {
+	// One-shot full sync at app launch when the user opted in. Mirrors
+	// handleAutoSyncTimer's guard structure (independent of the autoSync
+	// dropdown; unconfigured vaults get the standard settings prompt).
+	function makeOpenTriggerPlugin(settingsOverride: Partial<typeof DEFAULT_SETTINGS> = {}) {
+		const plugin = makePlugin();
+		plugin.settings = {
+			...DEFAULT_SETTINGS,
+			notifyChanges: false,
+			notifyConflicts: false,
+			...settingsOverride,
+		};
+		plugin.fit = { loadLocalStore: vi.fn(), loadSettings: vi.fn() } as any;
+		plugin.fitSyncRibbonIconEl = { addClass: vi.fn(), removeClass: vi.fn() } as any;
+		(plugin.fitSync as unknown as StubFitSync).sync.mockResolvedValue({
+			success: true, changeGroups: [], clash: [],
+		});
+		return plugin;
+	}
+
+	const configured = { pat: 'token', owner: 'alice', repo: 'notes', branch: 'main' };
+
+	it('runs a full auto sync at open when enabled and configured', async () => {
+		const plugin = makeOpenTriggerPlugin({ ...configured, syncOnOpen: true });
+		const stub = plugin.fitSync as unknown as StubFitSync;
+
+		await (plugin as any).handleSyncOnOpen();
+
+		expect(stub.sync).toHaveBeenCalledTimes(1);
+		expect(stub.sync).toHaveBeenCalledWith(expect.anything(), { isAutoSync: true });
+	});
+
+	it('does nothing when syncOnOpen is disabled', async () => {
+		const plugin = makeOpenTriggerPlugin({ ...configured, syncOnOpen: false });
+		const stub = plugin.fitSync as unknown as StubFitSync;
+
+		await (plugin as any).handleSyncOnOpen();
+
+		expect(stub.sync).not.toHaveBeenCalled();
+	});
+
+	it('does nothing when settings are not configured', async () => {
+		const plugin = makeOpenTriggerPlugin({ syncOnOpen: true }); // no pat/owner/repo/branch
+		// `setting` is not in obsidian's App typings (see openPluginSettings' cast)
+		(plugin.app as any).setting = { open: vi.fn(), openTabById: vi.fn() };
+		const stub = plugin.fitSync as unknown as StubFitSync;
+
+		await (plugin as any).handleSyncOnOpen();
+
+		expect(stub.sync).not.toHaveBeenCalled();
+	});
 });

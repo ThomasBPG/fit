@@ -58,6 +58,7 @@ export class Plugin extends Component {
 	addRibbonIcon = vi.fn().mockReturnValue({ addClass: vi.fn() });
 	registerInterval = vi.fn().mockReturnValue(1);
 	registerDomEvent = vi.fn();
+	registerEvent = vi.fn();
 }
 
 export class Notice {

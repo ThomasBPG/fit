@@ -454,6 +454,27 @@ export default class FitPlugin extends Plugin {
 	}
 
 	/**
+	 * Entry point: app launch — one-shot full sync when the user opted in
+	 * ("Sync on open", #65). Independent of the autoSync interval setting.
+	 * Mirrors handleAutoSyncTimer's guard structure, including the
+	 * not-configured prompt.
+	 */
+	async handleSyncOnOpen(): Promise<void> {
+		if (!this.settings?.syncOnOpen) return;
+		if (this.checkSettingsConfigured()) {
+			await this.executeSyncWithUICoordination('auto');
+		}
+	}
+
+	/**
+	 * Register vault event listeners driving the auto-sync triggers.
+	 * registerEvent() auto-unregisters them on plugin unload.
+	 */
+	registerVaultEvents(): void {
+		this.registerEvent(this.app.vault.on('modify', this.onVaultFileSaved));
+	}
+
+	/**
 	 * Entry point: a vault file was written to disk (Ctrl+S, vim :w, editor
 	 * autosave on blur, or a mobile save). Debounced so a burst of saves
 	 * coalesces into one full auto sync. The isActive guard is load-bearing:
@@ -529,6 +550,12 @@ export default class FitPlugin extends Plugin {
 
 			// register interval to repeat auto check
 			await this.startOrUpdateAutoSyncInterval();
+
+			this.registerVaultEvents();
+
+			// One-shot sync at launch when opted in; not awaited so a slow
+			// network never delays vault load.
+			void this.handleSyncOnOpen();
 
 			fitLogger.log('[Plugin] Plugin initialization completed successfully');
 		} catch (error) {
