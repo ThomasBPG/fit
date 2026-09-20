@@ -695,7 +695,7 @@ export default class FitSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Sync on save")
-			.setDesc("Wait a few seconds after a vault file is saved, then run a full sync. Saves made in quick succession trigger a single sync.")
+			.setDesc("Wait 30 seconds after a vault file is saved, then run a full sync. Saves made in quick succession trigger a single sync.")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.syncOnSave)
 				.onChange(async (value) => {

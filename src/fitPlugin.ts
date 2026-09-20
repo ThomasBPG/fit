@@ -480,7 +480,7 @@ export default class FitPlugin extends Plugin {
 	 * coalesces into one full auto sync. The isActive guard is load-bearing:
 	 * FIT's own pull writes fire 'modify' too (LocalVault.applyChanges uses
 	 * vault.modify/create), so without it every sync would re-arm a redundant
-	 * no-op sync a few seconds later.
+	 * no-op sync 30 seconds later.
 	 */
 	onVaultFileSaved = (_file: TFile): void => {
 		if (!this.settings?.syncOnSave || this.fitSync?.isActive) return;

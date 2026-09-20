@@ -443,7 +443,7 @@ describe('FitPlugin sync-on-save trigger', () => {
 	// Vault 'modify' events are debounced: back-to-back saves coalesce into one
 	// full auto sync. FIT's own pull writes also fire 'modify' (LocalVault uses
 	// vault.modify/create), so the isActive guard must prevent re-triggering.
-	const SAVE_DEBOUNCE_MS = 3000; // must match SAVE_SYNC_DEBOUNCE_MS in fitPlugin.ts
+	const SAVE_DEBOUNCE_MS = 30000; // must match SAVE_SYNC_DEBOUNCE_MS in fitPlugin.ts
 
 	function makeSaveTriggerPlugin(settingsOverride: Partial<typeof DEFAULT_SETTINGS> = {}) {
 		const plugin = makePlugin();
